@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -665,11 +666,26 @@ function handleGenerate() {
   state.csvString = csv;
   state.showNotify = true;
 
+  // Add to history immediately
+  const newReq = {
+    id: "REQ-"+String(history.length+1).padStart(3,"0"),
+    date: new Date().toISOString().slice(0,10),
+    requester: "You",
+    description: state.criteria.join(", "),
+    platform: state.selectedPlatform.name,
+    status: "List Delivered",
+    recordCount: count,
+    teams: state.selectedPlatform.team,
+    csvData: csv,
+  };
+  state.currentRequestId = newReq.id;
+  history.unshift(newReq);
+
   const csmSet = [...new Set(data.map(r=>r.csm))];
   const coachSet = [...new Set(data.map(r=>r.coach))];
 
   addAgentMessage(
-    "Your list is ready! Here's a summary:\n\n📊 Records: "+count+" constituents\n📋 Platform: "+state.selectedPlatform.name+"\n📄 Format: CSV ("+state.selectedPlatform.name+" template)\n"+(state.uploadedFile?"📎 Filtered by: uploaded org list\n":"")+"🏢 Criteria: "+state.criteria.join(", ")+"\n\n👤 Associated CSMs: "+csmSet.join(", ")+"\n🎯 Associated Coaches: "+coachSet.join(", ")+"\n\nYou can download the CSV below. When you're ready to alert the teams, click \"Notify teams.\"",
+    "Your list is ready! Here's a summary:\n\n📊 Records: "+count+" constituents\n📋 Platform: "+state.selectedPlatform.name+"\n📄 Format: CSV ("+state.selectedPlatform.name+" template)\n"+(state.uploadedFile?"📎 Filtered by: uploaded org list\n":"")+"🏢 Criteria: "+state.criteria.join(", ")+"\n\n👤 Associated CSMs: "+csmSet.join(", ")+"\n🎯 Associated Coaches: "+coachSet.join(", ")+"\n\nThis request is tracked as "+newReq.id+". You can download the CSV below. When you're ready to alert the teams, click \"Notify teams.\"",
     1500
   );
 }
@@ -703,21 +719,14 @@ function handleNotify() {
   const coachSet = [...new Set(state.generatedData.map(r=>r.coach))];
   const consultantSet = [...new Set(state.generatedData.map(r=>r.consultant))];
 
-  const newReq = {
-    id: "REQ-"+String(history.length+1).padStart(3,"0"),
-    date: new Date().toISOString().slice(0,10),
-    requester: "You",
-    description: state.criteria.join(", "),
-    platform: platform.name,
-    status: "Submitted",
-    recordCount: state.generatedData.length,
-    teams: teams,
-    csvData: state.csvString,
-  };
-  history.unshift(newReq);
+  // Update existing history entry status
+  const existing = history.find(h => h.id === state.currentRequestId);
+  if (existing) {
+    existing.status = "Submitted";
+  }
 
   addAgentMessage(
-    "Slack notifications sent! Here's what went out:\n\n📢 Channels notified: #marketing-ops"+(teams.includes("RevOps")?", #revops":"")+(teams.includes("Product Operations")?", #product-ops":"")+"\n\n👤 @mentioned:\n• CSMs: "+csmSet.join(", ")+"\n• Coaches: "+coachSet.join(", ")+"\n• Consultants: "+consultantSet.join(", ")+"\n\nThe message includes a summary of the segmentation criteria, record count ("+state.generatedData.length+"), and a link to download the "+platform.name+"-formatted CSV.\n\nThis request is now tracked as "+newReq.id+". You can find it in the Request History tab. Need anything else?",
+    "Slack notifications sent! Here's what went out:\n\n📢 Channels notified: #marketing-ops"+(teams.includes("RevOps")?", #revops":"")+(teams.includes("Product Operations")?", #product-ops":"")+"\n\n👤 @mentioned:\n• CSMs: "+csmSet.join(", ")+"\n• Coaches: "+coachSet.join(", ")+"\n• Consultants: "+consultantSet.join(", ")+"\n\nThe message includes a summary of the segmentation criteria, record count ("+state.generatedData.length+"), and a link to download the "+platform.name+"-formatted CSV.\n\nThis request is tracked as "+state.currentRequestId+". You can find it in the Request History tab. Need anything else?",
     1800
   );
 }
