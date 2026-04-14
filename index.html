@@ -571,7 +571,13 @@ function processUserMessage(msg) {
   const lower = msg.toLowerCase();
   const platformMatch = PLATFORMS.find(p => lower.includes(p.name.toLowerCase()) || lower.includes(p.id));
 
-  if (state.stage === "initial" || state.stage === "refining") {
+  // Capture platform from this message if we don't have one yet
+  if (platformMatch && !state.selectedPlatform) {
+    state.selectedPlatform = platformMatch;
+    renderCriteria();
+  }
+
+  if (state.stage === "initial") {
     const nc = extractCriteria(lower);
 
     if (nc.length > 0) {
@@ -579,46 +585,49 @@ function processUserMessage(msg) {
       state.stage = "refining";
       renderCriteria();
 
-      if (platformMatch) {
-        state.selectedPlatform = platformMatch;
-        renderCriteria();
+      if (state.selectedPlatform) {
         const summary = state.criteria.join("\n• ");
-        addAgentMessage("Great — here's what I've captured so far:\n\n• "+summary+"\n\nPlatform: "+platformMatch.name+"\n\nDo you have a specific org list to upload, or should I pull from the full population? You can also refine your criteria further. When you're ready, just say \"generate\" and I'll build your list.", 1200);
+        addAgentMessage("Great — here's what I've captured so far:\n\n• "+summary+"\n\nPlatform: "+state.selectedPlatform.name+"\n\nDo you have a specific org list to upload, or should I pull from the full population? You can also refine your criteria further. When you're ready, just say \"generate\" and I'll build your list.", 1200);
       } else {
         const summary = state.criteria.join("\n• ");
         addAgentMessage("Got it! Here's what I've captured:\n\n• "+summary+"\n\nWhich platform are you sending from — Gainsight, Marketo, HubSpot, or Pendo? And do you need to narrow this to a specific org list, or should I pull from the full population?", 1000);
       }
-    } else if (platformMatch && !state.selectedPlatform) {
-      state.selectedPlatform = platformMatch;
+    } else if (platformMatch) {
       state.stage = "refining";
-      renderCriteria();
-      addAgentMessage(platformMatch.name+" — got it. The CSV will follow the "+platformMatch.name+" template format.\n\nNow, describe who you need to reach. You can mention criteria like:\n• Payment processor (WorldPay, Stripe, etc.)\n• Account status (active/inactive)\n• Login recency\n• User roles (Admin, Standard User, etc.)\n• Product (Bloomerang CRM, Fundraising, etc.)\n• Feature adoption\n• Revenue segment (Enterprise, Mid-Market, SMB)\n\nJust describe it naturally — I'll help you refine.", 1000);
-    } else if (/generate|build|create the list|looks good|that's it|perfect/.test(lower)) {
+      addAgentMessage(state.selectedPlatform.name+" — got it. The CSV will follow the "+state.selectedPlatform.name+" template format.\n\nNow, describe who you need to reach. You can mention criteria like:\n• Payment processor (WorldPay, Stripe, etc.)\n• Account status (active/inactive)\n• Login recency\n• User roles (Admin, Standard User, etc.)\n• Product (Bloomerang CRM, Fundraising, etc.)\n• Feature adoption\n• Revenue segment (Enterprise, Mid-Market, SMB)\n\nJust describe it naturally — I'll help you refine.", 1000);
+    } else {
+      addAgentMessage("I'm not sure I caught specific criteria from that. Here are some segmentation options you can mention:\n\n• Payment processor (e.g., WorldPay, Stripe)\n• Account status (active or inactive)\n• Login recency (e.g., logged in within 6 months)\n• User roles (Admin, Standard User, Read Only, etc.)\n• Product usage (Bloomerang CRM, Fundraising, Volunteer, Giving)\n• Feature adoption (Batch Entry, Online Giving Pages, Peer-to-Peer, etc.)\n• Revenue segment (Enterprise, Mid-Market, SMB, Starter)\n\nJust describe your audience naturally and I'll capture the details.", 800);
+    }
+
+  } else if (state.stage === "refining") {
+    // Check for generate-type confirmations first
+    if (/generate|build|create the list|looks good|that's it|that works|perfect|go ahead/.test(lower) || /^yes\.?$|^yep\.?$|^yeah\.?$|^sure\.?$/.test(lower.trim())) {
       if (state.criteria.length === 0) { addAgentMessage("I don't have any segmentation criteria yet. Can you describe the audience you need to reach?"); return; }
       if (!state.selectedPlatform) { addAgentMessage("Before I generate the list, which platform are you sending from — Gainsight, Marketo, HubSpot, or Pendo?"); return; }
       handleGenerate();
     } else {
-      addAgentMessage("I'm not sure I caught specific criteria from that. Here are some segmentation options you can mention:\n\n• Payment processor (e.g., WorldPay, Stripe)\n• Account status (active or inactive)\n• Login recency (e.g., logged in within 6 months)\n• User roles (Admin, Standard User, Read Only, etc.)\n• Product usage (Bloomerang CRM, Fundraising, Volunteer, Giving)\n• Feature adoption (Batch Entry, Online Giving Pages, Peer-to-Peer, etc.)\n• Revenue segment (Enterprise, Mid-Market, SMB, Starter)\n\nJust describe your audience naturally and I'll capture the details.", 800);
-    }
-  } else if (state.stage === "refining") {
-    if (/generate|build|create the list|looks good|that's it|that works|perfect|^yes$|go ahead/.test(lower)) {
-      if (!state.selectedPlatform) { addAgentMessage("Which platform are you sending from — Gainsight, Marketo, HubSpot, or Pendo?"); return; }
-      handleGenerate();
-    } else if (platformMatch && !state.selectedPlatform) {
-      state.selectedPlatform = platformMatch;
-      renderCriteria();
-      addAgentMessage(platformMatch.name+" — locked in. When you're satisfied with the criteria, just say \"generate\" and I'll build your CSV.", 600);
-    } else {
+      // Try to extract more criteria
       const nc = extractCriteria(lower);
       if (nc.length > 0) {
         state.criteria.push(...nc);
-      } else {
+      } else if (!platformMatch) {
+        // Only add raw text as criteria if it wasn't just a platform name
         state.criteria.push(msg);
       }
       renderCriteria();
-      const all = state.criteria.join("\n• ");
-      addAgentMessage("Updated criteria:\n\n• "+all+"\n\nAnything else to add, or should I generate the list?");
+
+      if (state.selectedPlatform) {
+        const all = state.criteria.join("\n• ");
+        addAgentMessage("Updated criteria:\n\n• "+all+"\n\nPlatform: "+state.selectedPlatform.name+"\n\nAnything else to add, or say \"generate\" when you're ready.");
+      } else if (platformMatch) {
+        // Platform was just set at the top of this function
+        addAgentMessage(state.selectedPlatform.name+" — locked in. When you're satisfied with the criteria, just say \"generate\" and I'll build your CSV.", 600);
+      } else {
+        const all = state.criteria.join("\n• ");
+        addAgentMessage("Updated criteria:\n\n• "+all+"\n\nWhich platform are you sending from — Gainsight, Marketo, HubSpot, or Pendo? When you're ready, say \"generate\".");
+      }
     }
+
   } else if (state.stage === "generated") {
     if (/notify|send|alert/.test(lower)) {
       handleNotify();
