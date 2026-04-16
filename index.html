@@ -1,766 +1,390 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Operational Sends — Bloomerang - v1.2</title>
+  <title>Operational Sends — Bloomerang</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto+Condensed:wght@300;400;700&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --color-black: #000000;
-      --color-white: #FFFFFF;
-      --color-green-mid: #94CF35;
-      --color-green-dark: #3F9107;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
-    body {
-      font-family: 'Roboto Condensed', sans-serif;
-      font-weight: 400;
-      color: var(--color-black);
-      background: var(--color-white);
-    }
-    ::selection { background: rgba(148,207,53,0.3); }
-
-    /* Animations */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes dotBounce {
-      0%, 80%, 100% { opacity: 0.3; }
-      40% { opacity: 1; }
-    }
-    .fade-in { animation: fadeIn 0.3s ease; }
-
-    /* Header */
-    .header {
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-      padding: 20px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .header-title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
-    .header-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--color-green-mid);
-    }
-    .header h1 {
-      font-family: 'Playfair Display', serif;
-      font-weight: 700;
-      font-size: 22px;
-      color: var(--color-black);
-      letter-spacing: -0.01em;
-    }
-    .header-sub {
-      font-weight: 300;
-      font-size: 14px;
-      color: rgba(0,0,0,0.55);
-      padding-left: 18px;
-    }
-
-    /* Tabs */
-    .tabs {
-      display: flex;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-      padding-left: 32px;
-    }
-    .tab-btn {
-      padding: 10px 24px;
-      font-family: 'Roboto Condensed', sans-serif;
-      font-weight: 700;
-      font-size: 13px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s;
-      border-bottom: 3px solid transparent;
-      background: none;
-      color: rgba(0,0,0,0.45);
-    }
-    .tab-btn.active { color: var(--color-black); border-bottom-color: var(--color-green-mid); }
-    .tab-btn:hover { color: var(--color-black); }
-
-    /* Buttons */
-    .action-btn {
-      padding: 8px 20px;
-      border-radius: 6px;
-      font-family: 'Roboto Condensed', sans-serif;
-      font-weight: 700;
-      font-size: 13px;
-      letter-spacing: 0.03em;
-      cursor: pointer;
-      transition: all 0.2s;
-      border: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .action-btn:hover { transform: translateY(-1px); }
-    .action-btn.primary { background: var(--color-green-dark); color: var(--color-white); }
-    .action-btn.primary:hover { background: #357a06; }
-    .action-btn.secondary { background: var(--color-black); color: var(--color-white); }
-    .action-btn.secondary:hover { background: #222; }
-    .action-btn.outline {
-      background: transparent;
-      color: var(--color-black);
-      border: 1.5px solid rgba(0,0,0,0.2);
-    }
-    .action-btn.outline:hover { border-color: var(--color-black); }
-    .action-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
-
-    /* Chat area */
-    .chat-container {
-      display: flex;
-      flex-direction: column;
-      height: calc(100vh - 130px);
-    }
-    .criteria-bar {
-      padding: 10px 32px;
-      border-bottom: 1px solid rgba(0,0,0,0.06);
-      background: rgba(148,207,53,0.04);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items: center;
-    }
-    .criteria-label {
-      font-size: 11px; font-weight: 700;
-      letter-spacing: 0.06em; text-transform: uppercase;
-      color: rgba(0,0,0,0.4); margin-right: 4px;
-    }
-    .criteria-tag {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 20px;
-      background: rgba(0,0,0,0.06);
-      font-size: 12px;
-      font-weight: 400;
-    }
-    .criteria-tag.platform {
-      background: rgba(63,145,7,0.12);
-      color: var(--color-green-dark);
-      font-weight: 700;
-    }
-    .messages-area {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px 32px;
-    }
-
-    /* Chat bubbles */
-    .bubble-row {
-      display: flex;
-      margin-bottom: 12px;
-      animation: fadeIn 0.3s ease;
-    }
-    .bubble-row.agent { justify-content: flex-start; }
-    .bubble-row.user { justify-content: flex-end; }
-    .avatar {
-      width: 32px; height: 32px; border-radius: 50%;
-      background: var(--color-green-dark);
-      display: flex; align-items: center; justify-content: center;
-      margin-right: 8px; flex-shrink: 0; margin-top: 4px;
-      font-family: 'Playfair Display', serif; font-weight: 700;
-      color: #fff; font-size: 14px;
-    }
-    .bubble {
-      max-width: 78%;
-      padding: 10px 14px;
-      font-family: 'Roboto Condensed', sans-serif;
-      font-weight: 300;
-      font-size: 14px;
-      line-height: 1.55;
-      white-space: pre-wrap;
-    }
-    .bubble.agent {
-      border-radius: 2px 14px 14px 14px;
-      background: rgba(148,207,53,0.1);
-      color: var(--color-black);
-    }
-    .bubble.user {
-      border-radius: 14px 14px 2px 14px;
-      background: var(--color-black);
-      color: var(--color-white);
-    }
-    .dot-bounce {
-      animation: dotBounce 1.2s infinite;
-      font-size: 10px;
-      color: var(--color-green-dark);
-    }
-
-    /* Input bar */
-    .input-bar {
-      border-top: 1px solid rgba(0,0,0,0.08);
-      padding: 14px 32px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      background: var(--color-white);
-    }
-    .upload-btn {
-      width: 36px; height: 36px;
-      border-radius: 8px;
-      border: 1.5px solid rgba(0,0,0,0.12);
-      background: transparent;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      flex-shrink: 0;
-      transition: border-color 0.2s;
-    }
-    .upload-btn:hover { border-color: var(--color-green-mid); }
-    .chat-input {
-      flex: 1;
-      padding: 10px 14px;
-      border-radius: 8px;
-      border: 1.5px solid rgba(0,0,0,0.12);
-      font-family: 'Roboto Condensed', sans-serif;
-      font-weight: 400;
-      font-size: 14px;
-      background: transparent;
-      transition: border-color 0.2s;
-      outline: none;
-    }
-    .chat-input:focus { border-color: var(--color-green-mid); }
-
-    /* Action buttons in chat */
-    .chat-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 8px;
-      margin-bottom: 12px;
-      animation: fadeIn 0.4s ease;
-    }
-
-    /* History */
-    .history-container { padding: 24px 32px; }
-    .search-input {
-      width: 100%;
-      max-width: 560px;
-      padding: 10px 14px;
-      border-radius: 8px;
-      border: 1.5px solid rgba(0,0,0,0.12);
-      font-family: 'Roboto Condensed', sans-serif;
-      font-weight: 400;
-      font-size: 14px;
-      transition: border-color 0.2s;
-      outline: none;
-      margin-bottom: 20px;
-    }
-    .search-input:focus { border-color: var(--color-green-mid); }
-    .history-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-family: 'Roboto Condensed', sans-serif;
-    }
-    .history-table thead tr { border-bottom: 2px solid var(--color-black); }
-    .history-table th {
-      text-align: left;
-      padding: 10px 12px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: rgba(0,0,0,0.45);
-    }
-    .history-table td { padding: 12px 12px; font-size: 13px; }
-    .history-table tbody tr {
-      border-bottom: 1px solid rgba(0,0,0,0.06);
-      transition: background 0.15s;
-    }
-    .history-table tbody tr:hover { background: rgba(148,207,53,0.05); }
-    .desc-cell {
-      max-width: 260px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .status-badge {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-family: 'Roboto Condensed', sans-serif;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
-    .empty-state {
-      padding: 40px;
-      text-align: center;
-      color: rgba(0,0,0,0.35);
-      font-size: 14px;
-    }
-    .hidden { display: none; }
+    :root { --color-black:#000; --color-white:#FFF; --color-green-mid:#94CF35; --color-green-dark:#3F9107; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{font-family:'Roboto Condensed',sans-serif;font-weight:400;color:var(--color-black);background:var(--color-white)}
+    ::selection{background:rgba(148,207,53,0.3)}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes dotBounce{0%,80%,100%{opacity:.3}40%{opacity:1}}
+    .fade-in{animation:fadeIn .3s ease}
+    .header{border-bottom:1px solid rgba(0,0,0,.08);padding:20px 32px;display:flex;align-items:center;justify-content:space-between}
+    .header-title-row{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+    .header-dot{width:8px;height:8px;border-radius:50%;background:var(--color-green-mid)}
+    .header h1{font-family:'Playfair Display',serif;font-weight:700;font-size:22px;color:var(--color-black);letter-spacing:-.01em}
+    .header-sub{font-weight:300;font-size:14px;color:rgba(0,0,0,.55);padding-left:18px}
+    .tabs{display:flex;border-bottom:1px solid rgba(0,0,0,.08);padding-left:32px}
+    .tab-btn{padding:10px 24px;font-family:'Roboto Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;border:none;cursor:pointer;transition:all .2s;border-bottom:3px solid transparent;background:none;color:rgba(0,0,0,.45)}
+    .tab-btn.active{color:var(--color-black);border-bottom-color:var(--color-green-mid)}
+    .tab-btn:hover{color:var(--color-black)}
+    .action-btn{padding:8px 20px;border-radius:6px;font-family:'Roboto Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:.03em;cursor:pointer;transition:all .2s;border:none;display:inline-flex;align-items:center;gap:4px}
+    .action-btn:hover{transform:translateY(-1px)}
+    .action-btn.primary{background:var(--color-green-dark);color:var(--color-white)}
+    .action-btn.primary:hover{background:#357a06}
+    .action-btn.secondary{background:var(--color-black);color:var(--color-white)}
+    .action-btn.secondary:hover{background:#222}
+    .action-btn.outline{background:transparent;color:var(--color-black);border:1.5px solid rgba(0,0,0,.2)}
+    .action-btn.outline:hover{border-color:var(--color-black)}
+    .action-btn:disabled{opacity:.4;cursor:default;transform:none}
+    .chat-container{display:flex;flex-direction:column;height:calc(100vh - 130px)}
+    .criteria-bar{padding:10px 32px;border-bottom:1px solid rgba(0,0,0,.06);background:rgba(148,207,53,.04);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+    .criteria-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(0,0,0,.4);margin-right:4px}
+    .criteria-tag{display:inline-block;padding:3px 10px;border-radius:20px;background:rgba(0,0,0,.06);font-size:12px;font-weight:400}
+    .criteria-tag.platform{background:rgba(63,145,7,.12);color:var(--color-green-dark);font-weight:700}
+    .messages-area{flex:1;overflow-y:auto;padding:24px 32px}
+    .bubble-row{display:flex;margin-bottom:12px;animation:fadeIn .3s ease}
+    .bubble-row.agent{justify-content:flex-start}
+    .bubble-row.user{justify-content:flex-end}
+    .avatar{width:32px;height:32px;border-radius:50%;background:var(--color-green-dark);display:flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;margin-top:4px;font-family:'Playfair Display',serif;font-weight:700;color:#fff;font-size:14px}
+    .bubble{max-width:78%;padding:10px 14px;font-family:'Roboto Condensed',sans-serif;font-weight:300;font-size:14px;line-height:1.55;white-space:pre-wrap}
+    .bubble.agent{border-radius:2px 14px 14px 14px;background:rgba(148,207,53,.1);color:var(--color-black)}
+    .bubble.user{border-radius:14px 14px 2px 14px;background:var(--color-black);color:var(--color-white)}
+    .dot-bounce{animation:dotBounce 1.2s infinite;font-size:10px;color:var(--color-green-dark)}
+    .input-bar{border-top:1px solid rgba(0,0,0,.08);padding:14px 32px;display:flex;gap:10px;align-items:center;background:var(--color-white)}
+    .upload-btn{width:36px;height:36px;border-radius:8px;border:1.5px solid rgba(0,0,0,.12);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:border-color .2s}
+    .upload-btn:hover{border-color:var(--color-green-mid)}
+    .chat-input{flex:1;padding:10px 14px;border-radius:8px;border:1.5px solid rgba(0,0,0,.12);font-family:'Roboto Condensed',sans-serif;font-weight:400;font-size:14px;background:transparent;transition:border-color .2s;outline:none}
+    .chat-input:focus{border-color:var(--color-green-mid)}
+    .chat-actions{display:flex;gap:10px;margin-top:8px;margin-bottom:12px;animation:fadeIn .4s ease}
+    .history-container{padding:24px 32px}
+    .search-input{width:100%;max-width:560px;padding:10px 14px;border-radius:8px;border:1.5px solid rgba(0,0,0,.12);font-family:'Roboto Condensed',sans-serif;font-weight:400;font-size:14px;transition:border-color .2s;outline:none;margin-bottom:20px}
+    .search-input:focus{border-color:var(--color-green-mid)}
+    .history-table{width:100%;border-collapse:collapse;font-family:'Roboto Condensed',sans-serif}
+    .history-table thead tr{border-bottom:2px solid var(--color-black)}
+    .history-table th{text-align:left;padding:10px 12px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(0,0,0,.45)}
+    .history-table td{padding:12px;font-size:13px}
+    .history-table tbody tr{border-bottom:1px solid rgba(0,0,0,.06);transition:background .15s}
+    .history-table tbody tr:hover{background:rgba(148,207,53,.05)}
+    .desc-cell{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .status-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-family:'Roboto Condensed',sans-serif;font-weight:700;letter-spacing:.02em}
+    .empty-state{padding:40px;text-align:center;color:rgba(0,0,0,.35);font-size:14px}
+    .hidden{display:none}
+    .phase-tag{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:4px;background:rgba(148,207,53,.15);color:var(--color-green-dark);margin-left:8px}
   </style>
 </head>
 <body>
-
-  <!-- Header -->
   <div class="header">
     <div>
       <div class="header-title-row">
         <div class="header-dot"></div>
-        <h1>Marketing List Generator 3000 - v1.2</h1>
+        <h1>Marketing List Generator 3000 - v1.4</h1>
+        <span class="phase-tag">Phase 1 — Demo</span>
       </div>
       <p class="header-sub">Build targeted constituent lists and get them to the right teams — fast.</p>
     </div>
     <button class="action-btn outline" style="font-size:12px" onclick="resetConversation()">+ New request</button>
   </div>
-
-  <!-- Tabs -->
   <div class="tabs">
     <button id="tab-chat" class="tab-btn active" onclick="switchTab('chat')">Intake assistant</button>
     <button id="tab-history" class="tab-btn" onclick="switchTab('history')">Request history (<span id="history-count">4</span>)</button>
   </div>
-
-  <!-- Chat Tab -->
   <div id="panel-chat" class="chat-container">
     <div id="criteria-bar" class="criteria-bar hidden"></div>
     <div id="messages-area" class="messages-area"></div>
-    <div id="chat-actions" class="hidden"></div>
     <div class="input-bar">
       <input type="file" id="file-input" accept=".csv" style="display:none" onchange="handleFileUpload(event)">
       <button class="upload-btn" onclick="document.getElementById('file-input').click()" title="Upload org list CSV">📎</button>
       <input type="text" id="chat-input" class="chat-input" placeholder="Describe who you need to reach..." onkeydown="if(event.key==='Enter')handleSend()">
-      <button id="send-btn" class="action-btn primary" style="padding:10px 20px" onclick="handleSend()">Send</button>
+      <button class="action-btn primary" style="padding:10px 20px" onclick="handleSend()">Send</button>
     </div>
   </div>
-
-  <!-- History Tab -->
   <div id="panel-history" class="history-container hidden">
-    <input type="text" id="search-input" class="search-input" placeholder="Search requests by ID, requester, criteria, platform, status, or team..." oninput="renderHistory()">
+    <input type="text" id="search-input" class="search-input" placeholder="Search by ID, requester, criteria, platform, status, or team..." oninput="renderHistory()">
     <div style="overflow-x:auto">
       <table class="history-table">
-        <thead>
-          <tr>
-            <th>ID</th><th>Date</th><th>Requester</th><th>Description</th>
-            <th>Platform</th><th>Records</th><th>Teams</th><th>Status</th><th></th>
-          </tr>
-        </thead>
+        <thead><tr><th>ID</th><th>Date</th><th>Requester</th><th>Description</th><th>Platform</th><th>Records</th><th>Teams</th><th>Status</th><th></th></tr></thead>
         <tbody id="history-body"></tbody>
       </table>
     </div>
   </div>
 
 <script>
-// ── Data & Constants ──────────────────────────────────────────────
-const MOCK_PROCESSORS = ["WorldPay","Stripe","PayPal","Braintree","Authorize.net","Square"];
-const MOCK_PRODUCTS = ["Bloomerang CRM","Bloomerang Fundraising","Bloomerang Volunteer","Bloomerang Giving"];
-const MOCK_ROLES = ["Admin","Standard User","Read Only","Fundraiser","Volunteer Coordinator"];
-const MOCK_SEGMENTS = ["Enterprise","Mid-Market","SMB","Starter"];
-const MOCK_FEATURES = ["Batch Entry","Online Giving Pages","Peer-to-Peer","Volunteer Management","Reporting Suite","Email Marketing"];
-const MOCK_ORGS = [
-  "Habitat for Humanity","United Way","Red Cross Chapter","Local Food Bank","Youth Mentorship Foundation",
-  "Animal Rescue League","Community Arts Center","Environmental Defense Fund","Senior Care Alliance",
-  "Children's Education Trust","Veterans Support Network","Parks Conservancy","Literacy Foundation",
-  "Meals on Wheels Local","Big Brothers Big Sisters","Salvation Army Branch","YMCA Chapter",
-  "Planned Parenthood Affiliate","Humane Society Branch","Boys & Girls Club"
-];
-const MOCK_NAMES = [
-  "Sarah Chen","Marcus Williams","Priya Patel","James O'Brien","Maria Garcia",
-  "David Kim","Emily Thompson","Robert Johnson","Aisha Mohammed","Carlos Rivera",
-  "Jennifer Lee","Michael Brown","Amanda Foster","Thomas Wright","Lisa Nguyen",
-  "Daniel Martinez","Rachel Cohen","Kevin Anderson","Stephanie Davis","Brian Wilson"
-];
-const MOCK_EMAILS_DOMAINS = ["gmail.com","outlook.com","yahoo.com","org.org","nonprofit.org"];
-const MOCK_CSM_NAMES = ["Alex Morgan","Jordan Rivera","Casey Bennett"];
-const MOCK_COACH_NAMES = ["Pat Sullivan","Jamie Torres"];
-const MOCK_CONSULTANT_NAMES = ["Morgan Hayes","Drew Patel"];
-const PLATFORMS = [
+// ── Mock Data ─────────────────────────────────────────────────────
+const ORGS=["Habitat for Humanity","United Way","Red Cross Chapter","Local Food Bank","Youth Mentorship Foundation","Animal Rescue League","Community Arts Center","Environmental Defense Fund","Senior Care Alliance","Children's Education Trust","Veterans Support Network","Parks Conservancy","Literacy Foundation","Meals on Wheels Local","Big Brothers Big Sisters","Salvation Army Branch","YMCA Chapter","Humane Society Branch","Boys & Girls Club","Community Health Partners"];
+const NAMES=["Sarah Chen","Marcus Williams","Priya Patel","James O'Brien","Maria Garcia","David Kim","Emily Thompson","Robert Johnson","Aisha Mohammed","Carlos Rivera","Jennifer Lee","Michael Brown","Amanda Foster","Thomas Wright","Lisa Nguyen","Daniel Martinez","Rachel Cohen","Kevin Anderson","Stephanie Davis","Brian Wilson"];
+const DOMAINS=["gmail.com","outlook.com","yahoo.com","org.org","nonprofit.org"];
+const CSMS=["Alex Morgan","Jordan Rivera","Casey Bennett"];
+const COACHES=["Pat Sullivan","Jamie Torres"];
+const CONSULTANTS=["Morgan Hayes","Drew Patel"];
+const ROLES=["Admin","StandardEditFinancialData","Standard User","Read Only","Fundraiser","Volunteer Coordinator","VMS Organization Manager"];
+const SEGMENTS=["Enterprise","Mid-Market","SMB","Starter"];
+const PROCESSORS=["Stripe","Authorize.net","BluePay","Bloomerang Payments"];
+const PRODUCTS=["Bloomerang CRM","Bloomerang Fundraising","Bloomerang Volunteer","Bloomerang Giving"];
+
+const PLATFORMS=[
   {id:"gainsight",name:"Gainsight",team:"Marketing"},
   {id:"marketo",name:"Marketo",team:"Marketing, RevOps"},
   {id:"hubspot",name:"HubSpot",team:"Marketing"},
   {id:"pendo",name:"Pendo",team:"Marketing, Product Operations"},
 ];
-const STATUS_STYLES = {
-  "Submitted":{bg:"rgba(148,207,53,0.15)",text:"#3F9107"},
-  "In Progress":{bg:"rgba(63,145,7,0.15)",text:"#3F9107"},
-  "List Delivered":{bg:"rgba(148,207,53,0.25)",text:"#3F9107"},
-  "Uploaded":{bg:"rgba(0,0,0,0.08)",text:"#000"},
-};
-const PLATFORM_HEADERS = {
-  gainsight:["email","first_name","last_name","org_name","account_status","csm"],
+const CSV_HDRS={
+  gainsight:["email","first_name","last_name","org_name","account_status","role"],
   marketo:["Email Address","First Name","Last Name","Company","Status","Lead Source"],
   hubspot:["Email","Firstname","Lastname","Company name","Lifecycle Stage","Contact owner"],
   pendo:["visitor_id","email","name","account_id","account_name","role"],
 };
-
-// ── State ─────────────────────────────────────────────────────────
-let state = {
-  messages: [],
-  criteria: [],
-  selectedPlatform: null,
-  uploadedFile: null,
-  generatedData: null,
-  csvString: null,
-  showNotify: false,
-  notified: false,
-  stage: "initial", // initial | refining | generated | notified
-  isThinking: false,
+const STAT={
+  "Submitted":{bg:"rgba(148,207,53,.15)",c:"#3F9107"},
+  "In Progress":{bg:"rgba(63,145,7,.15)",c:"#3F9107"},
+  "List Delivered":{bg:"rgba(148,207,53,.25)",c:"#3F9107"},
+  "Uploaded":{bg:"rgba(0,0,0,.08)",c:"#000"},
 };
 
-let history = [];
-
-// ── Mock Data Generators ──────────────────────────────────────────
-function generateMockCSVData(count) {
-  const rows = [];
-  for (let i = 0; i < count; i++) {
-    const name = MOCK_NAMES[i % MOCK_NAMES.length];
-    const [first, last] = name.split(" ");
-    rows.push({
-      email: first.toLowerCase()+"."+last.toLowerCase()+"@"+MOCK_EMAILS_DOMAINS[i%MOCK_EMAILS_DOMAINS.length],
-      first_name: first, last_name: last,
-      org_name: MOCK_ORGS[i%MOCK_ORGS.length],
-      account_status: "Active",
-      last_login: "2025-"+String((i%12)+1).padStart(2,"0")+"-"+String((i%28)+1).padStart(2,"0"),
-      role: MOCK_ROLES[i%MOCK_ROLES.length],
-      revenue_segment: MOCK_SEGMENTS[i%MOCK_SEGMENTS.length],
-      csm: MOCK_CSM_NAMES[i%MOCK_CSM_NAMES.length],
-      coach: MOCK_COACH_NAMES[i%MOCK_COACH_NAMES.length],
-      consultant: MOCK_CONSULTANT_NAMES[i%MOCK_CONSULTANT_NAMES.length],
-    });
+function mockCSV(platformId, count){
+  const h=CSV_HDRS[platformId]||CSV_HDRS.gainsight;
+  const rows=[h.join(",")];
+  for(let i=0;i<count;i++){
+    const n=NAMES[i%NAMES.length],[f,l]=n.split(" ");
+    const org=ORGS[i%ORGS.length];
+    const email=f.toLowerCase()+"."+l.toLowerCase()+"@"+DOMAINS[i%DOMAINS.length];
+    rows.push([email,f,l,org,"Active",ROLES[i%ROLES.length]].map(v=>'"'+v+'"').join(","));
   }
-  return rows;
+  return rows.join("\n");
 }
 
-function generateCSVString(data, platformId) {
-  const headers = PLATFORM_HEADERS[platformId] || PLATFORM_HEADERS.gainsight;
-  const csvRows = [headers.join(",")];
-  data.forEach(r => {
-    csvRows.push([r.email,r.first_name,r.last_name,r.org_name,r.account_status,r.csm||r.role].join(","));
+function mockAcctCount(criteria){
+  let base=17211;
+  criteria.forEach(c=>{
+    const cl=c.toLowerCase();
+    if(cl.includes("stripe")) base=Math.min(base,1550);
+    else if(cl.includes("authorize")) base=Math.min(base,890);
+    else if(cl.includes("bluepay")) base=Math.min(base,420);
+    else if(cl.includes("bloomerang payments")) base=Math.min(base,3200);
+    if(cl.includes("enterprise")) base=Math.floor(base*0.12);
+    else if(cl.includes("mid-market")||cl.includes("mid market")) base=Math.floor(base*0.25);
+    else if(cl.includes("smb")) base=Math.floor(base*0.48);
+    if(cl.includes("volunteer")) base=Math.floor(base*0.35);
+    if(cl.includes("giving")) base=Math.floor(base*0.28);
+    if(cl.includes("login")||cl.includes("logged")) base=Math.floor(base*0.72);
+    if(cl.includes("admin")) base=Math.floor(base*0.18);
   });
-  return csvRows.join("\n");
+  return Math.max(base,3);
 }
 
-function generateHistoryCSV(platformName, count) {
-  const id = platformName.toLowerCase().replace(/\s/g,"");
-  return generateCSVString(generateMockCSVData(count), id);
-}
+function mockVisitorCount(acctCount){return Math.floor(acctCount*2.4+Math.random()*acctCount*0.3);}
 
-function downloadCSV(csvStr, platformName, date) {
-  const blob = new Blob([csvStr], {type:"text/csv"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "operational-send-"+platformName.toLowerCase()+"-"+date+".csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// ── Initialize History ────────────────────────────────────────────
-function initHistory() {
-  history = [
-    {id:"REQ-001",date:"2026-04-10",requester:"Tommy Ngo",description:"All WorldPay users with active accounts, logged in within 12 months",platform:"Marketo",status:"Uploaded",recordCount:1243,teams:"Marketing, RevOps",csvData:generateHistoryCSV("Marketo",1243)},
-    {id:"REQ-002",date:"2026-04-08",requester:"Sarah Chen",description:"Enterprise segment admins using Bloomerang Fundraising",platform:"Gainsight",status:"List Delivered",recordCount:387,teams:"Marketing",csvData:generateHistoryCSV("Gainsight",387)},
-    {id:"REQ-003",date:"2026-04-05",requester:"Marcus Williams",description:"All users with Peer-to-Peer feature adoption in last 6 months",platform:"Pendo",status:"In Progress",recordCount:52,teams:"Marketing, Product Operations",csvData:generateHistoryCSV("Pendo",52)},
-    {id:"REQ-004",date:"2026-04-02",requester:"Priya Patel",description:"SMB segment volunteer coordinators — specific org list uploaded",platform:"HubSpot",status:"Submitted",recordCount:91,teams:"Marketing",csvData:generateHistoryCSV("HubSpot",91)},
+// ── History seed ──────────────────────────────────────────────────
+function seedHistory(){
+  return [
+    {id:"REQ-001",date:"2026-04-10",requester:"Tommy Ngo",description:"All Stripe accounts, active, logged in within 12 months",platform:"Marketo",status:"Uploaded",recordCount:2683,teams:"Marketing, RevOps",csvData:mockCSV("marketo",2683)},
+    {id:"REQ-002",date:"2026-04-08",requester:"Sarah Chen",description:"Enterprise segment admins using Bloomerang Fundraising",platform:"Gainsight",status:"List Delivered",recordCount:387,teams:"Marketing",csvData:mockCSV("gainsight",387)},
+    {id:"REQ-003",date:"2026-04-05",requester:"Marcus Williams",description:"SMB accounts with Bloomerang Giving, logged in within 6 months",platform:"Pendo",status:"In Progress",recordCount:512,teams:"Marketing, Product Operations",csvData:mockCSV("pendo",512)},
+    {id:"REQ-004",date:"2026-04-02",requester:"Priya Patel",description:"Mid-Market volunteer coordinators — specific org list uploaded",platform:"HubSpot",status:"Submitted",recordCount:91,teams:"Marketing",csvData:mockCSV("hubspot",91)},
   ];
 }
 
+// ── State ─────────────────────────────────────────────────────────
+let S={messages:[],criteria:[],platform:null,uploadedFile:null,uploadedOrgs:[],csv:null,showNotify:false,notified:false,stage:"initial",thinking:false,reqId:null,acctCount:0,visCount:0};
+let history=seedHistory();
+
 // ── Rendering ─────────────────────────────────────────────────────
-function esc(s) {
-  const d = document.createElement("div");
-  d.textContent = s;
-  return d.innerHTML;
-}
+function esc(s){const d=document.createElement("div");d.textContent=s;return d.innerHTML}
 
-function renderMessages() {
-  const area = document.getElementById("messages-area");
-  let html = "";
-  state.messages.forEach(m => {
-    if (m.isAgent) {
-      html += '<div class="bubble-row agent fade-in"><div class="avatar">B</div><div class="bubble agent">'+esc(m.text)+'</div></div>';
-    } else {
-      html += '<div class="bubble-row user fade-in"><div class="bubble user">'+esc(m.text)+'</div></div>';
-    }
+function render(){
+  const area=document.getElementById("messages-area");let h="";
+  S.messages.forEach(m=>{
+    h+=m.isAgent
+      ?'<div class="bubble-row agent fade-in"><div class="avatar">B</div><div class="bubble agent">'+esc(m.text)+'</div></div>'
+      :'<div class="bubble-row user fade-in"><div class="bubble user">'+esc(m.text)+'</div></div>';
   });
-  if (state.isThinking) {
-    html += '<div class="bubble-row agent fade-in"><div class="avatar">B</div><div class="bubble agent"><span style="display:flex;gap:4px;padding:4px 0"><span class="dot-bounce" style="animation-delay:0s">●</span><span class="dot-bounce" style="animation-delay:0.15s">●</span><span class="dot-bounce" style="animation-delay:0.3s">●</span></span></div></div>';
-  }
-  // Action buttons
-  if (state.showNotify && !state.notified) {
-    html += '<div class="chat-actions"><button class="action-btn primary" onclick="handleDownloadCSV()">↓ Download CSV</button><button class="action-btn secondary" onclick="handleNotify()">📢 Notify teams</button></div>';
-  }
-  if (state.notified) {
-    html += '<div class="chat-actions"><button class="action-btn primary" onclick="handleDownloadCSV()">↓ Download CSV</button><button class="action-btn outline" onclick="resetConversation()">+ Start new request</button></div>';
-  }
-  area.innerHTML = html;
-  area.scrollTop = area.scrollHeight;
-}
-
-function renderCriteria() {
-  const bar = document.getElementById("criteria-bar");
-  if (state.criteria.length === 0 && !state.selectedPlatform && !state.uploadedFile) {
-    bar.classList.add("hidden");
-    return;
-  }
+  if(S.thinking) h+='<div class="bubble-row agent fade-in"><div class="avatar">B</div><div class="bubble agent"><span style="display:flex;gap:4px;padding:4px 0"><span class="dot-bounce" style="animation-delay:0s">●</span><span class="dot-bounce" style="animation-delay:.15s">●</span><span class="dot-bounce" style="animation-delay:.3s">●</span></span></div></div>';
+  if(S.showNotify&&!S.notified) h+='<div class="chat-actions"><button class="action-btn primary" onclick="dlCSV()">↓ Download CSV</button><button class="action-btn secondary" onclick="notify()">📢 Notify teams</button></div>';
+  if(S.notified) h+='<div class="chat-actions"><button class="action-btn primary" onclick="dlCSV()">↓ Download CSV</button><button class="action-btn outline" onclick="resetConversation()">+ Start new request</button></div>';
+  area.innerHTML=h;area.scrollTop=area.scrollHeight;
+  // Criteria bar
+  const bar=document.getElementById("criteria-bar");
+  if(!S.criteria.length&&!S.platform&&!S.uploadedFile){bar.classList.add("hidden");return;}
   bar.classList.remove("hidden");
-  let html = '<span class="criteria-label">Criteria:</span>';
-  state.criteria.forEach(c => {
-    html += '<span class="criteria-tag">'+esc(c)+'</span>';
-  });
-  if (state.selectedPlatform) {
-    html += '<span class="criteria-tag platform">'+esc(state.selectedPlatform.name)+'</span>';
-  }
-  if (state.uploadedFile) {
-    html += '<span class="criteria-tag">📎 '+esc(state.uploadedFile.name)+'</span>';
-  }
-  bar.innerHTML = html;
+  let cb='<span class="criteria-label">Criteria:</span>';
+  S.criteria.forEach(c=>{cb+='<span class="criteria-tag">'+esc(c)+'</span>';});
+  if(S.platform) cb+='<span class="criteria-tag platform">'+esc(S.platform.name)+'</span>';
+  if(S.uploadedFile) cb+='<span class="criteria-tag">📎 '+esc(S.uploadedFile.name)+'</span>';
+  bar.innerHTML=cb;
 }
 
-function renderHistory() {
-  const query = (document.getElementById("search-input").value||"").toLowerCase().trim();
-  const filtered = history.filter(h => {
-    if (!query) return true;
-    return [h.id,h.requester,h.description,h.platform,h.status,h.teams]
-      .some(f => f.toLowerCase().includes(query));
-  });
-  const body = document.getElementById("history-body");
-  if (filtered.length === 0) {
-    body.innerHTML = '<tr><td colspan="9" class="empty-state">'+(query?"No requests match your search.":"No requests yet. Start a new one above!")+'</td></tr>';
-  } else {
-    body.innerHTML = filtered.map((r,idx) => {
-      const s = STATUS_STYLES[r.status]||STATUS_STYLES["Submitted"];
-      const badge = '<span class="status-badge" style="background:'+s.bg+';color:'+s.text+'">'+esc(r.status)+'</span>';
-      const dlBtn = r.csvData ? '<button class="action-btn outline" style="padding:4px 12px;font-size:12px" onclick="downloadCSV(history['+(history.indexOf(r))+'].csvData,\''+r.platform+'\',\''+r.date+'\')">↓ CSV</button>' : '';
-      return '<tr><td style="font-weight:700">'+esc(r.id)+'</td><td style="font-weight:300">'+esc(r.date)+'</td><td>'+esc(r.requester)+'</td><td style="font-weight:300"><div class="desc-cell">'+esc(r.description)+'</div></td><td>'+esc(r.platform)+'</td><td style="font-weight:300">'+(r.recordCount?r.recordCount.toLocaleString():"—")+'</td><td style="font-weight:300">'+esc(r.teams)+'</td><td>'+badge+'</td><td>'+dlBtn+'</td></tr>';
-    }).join("");
-  }
-  document.getElementById("history-count").textContent = history.length;
+function renderHistory(){
+  const q=(document.getElementById("search-input").value||"").toLowerCase().trim();
+  const f=history.filter(r=>!q||[r.id,r.requester,r.description,r.platform,r.status,r.teams].some(x=>x.toLowerCase().includes(q)));
+  const body=document.getElementById("history-body");
+  if(!f.length){body.innerHTML='<tr><td colspan="9" class="empty-state">'+(q?"No requests match.":"No requests yet.")+'</td></tr>';}
+  else{body.innerHTML=f.map(r=>{
+    const s=STAT[r.status]||STAT["Submitted"];
+    const badge='<span class="status-badge" style="background:'+s.bg+';color:'+s.c+'">'+esc(r.status)+'</span>';
+    const i=history.indexOf(r);
+    const dl=r.csvData?'<button class="action-btn outline" style="padding:4px 12px;font-size:12px" onclick="downloadCSV(history['+i+'].csvData,\''+r.platform+'\',\''+r.date+'\')">↓ CSV</button>':'';
+    return '<tr><td style="font-weight:700">'+esc(r.id)+'</td><td style="font-weight:300">'+esc(r.date)+'</td><td>'+esc(r.requester)+'</td><td style="font-weight:300"><div class="desc-cell">'+esc(r.description)+'</div></td><td>'+esc(r.platform)+'</td><td style="font-weight:300">'+(r.recordCount?r.recordCount.toLocaleString():"—")+'</td><td style="font-weight:300">'+esc(r.teams)+'</td><td>'+badge+'</td><td>'+dl+'</td></tr>';
+  }).join("");}
+  document.getElementById("history-count").textContent=history.length;
 }
 
-// ── Tab Switching ─────────────────────────────────────────────────
-function switchTab(tab) {
-  document.getElementById("tab-chat").classList.toggle("active", tab==="chat");
-  document.getElementById("tab-history").classList.toggle("active", tab==="history");
-  document.getElementById("panel-chat").classList.toggle("hidden", tab!=="chat");
-  document.getElementById("panel-history").classList.toggle("hidden", tab!=="history");
-  if (tab==="history") renderHistory();
+function switchTab(t){
+  document.getElementById("tab-chat").classList.toggle("active",t==="chat");
+  document.getElementById("tab-history").classList.toggle("active",t==="history");
+  document.getElementById("panel-chat").classList.toggle("hidden",t!=="chat");
+  document.getElementById("panel-history").classList.toggle("hidden",t!=="history");
+  if(t==="history")renderHistory();
 }
 
-// ── Agent Message ─────────────────────────────────────────────────
-function addAgentMessage(text, delay) {
-  delay = delay || 800;
-  state.isThinking = true;
-  renderMessages();
-  setTimeout(() => {
-    state.isThinking = false;
-    state.messages.push({text:text, isAgent:true});
-    renderMessages();
-  }, delay);
+function downloadCSV(csvStr,plat,date){
+  const b=new Blob([csvStr],{type:"text/csv"}),u=URL.createObjectURL(b),a=document.createElement("a");
+  a.href=u;a.download="operational-send-"+plat.toLowerCase()+"-"+date+".csv";a.click();URL.revokeObjectURL(u);
 }
 
-// ── Send ──────────────────────────────────────────────────────────
-function handleSend() {
-  const el = document.getElementById("chat-input");
-  const val = el.value.trim();
-  if (!val || state.isThinking) return;
-  state.messages.push({text:val, isAgent:false});
-  el.value = "";
-  renderMessages();
-  processUserMessage(val);
+// ── Chat ──────────────────────────────────────────────────────────
+function addMsg(text,delay){
+  delay=delay||800;S.thinking=true;render();
+  setTimeout(()=>{S.thinking=false;S.messages.push({text,isAgent:true});render();},delay);
 }
 
-// ── NLP Processing ────────────────────────────────────────────────
-function processUserMessage(msg) {
-  const lower = msg.toLowerCase();
-  const platformMatch = PLATFORMS.find(p => lower.includes(p.name.toLowerCase()) || lower.includes(p.id));
-
-  // Capture platform from this message if we don't have one yet
-  if (platformMatch && !state.selectedPlatform) {
-    state.selectedPlatform = platformMatch;
-    renderCriteria();
-  }
-
-  if (state.stage === "initial") {
-    const nc = extractCriteria(lower);
-
-    if (nc.length > 0) {
-      state.criteria.push(...nc);
-      state.stage = "refining";
-      renderCriteria();
-
-      if (state.selectedPlatform) {
-        const summary = state.criteria.join("\n• ");
-        addAgentMessage("Great — here's what I've captured so far:\n\n• "+summary+"\n\nPlatform: "+state.selectedPlatform.name+"\n\nDo you have a specific org list to upload, or should I pull from the full population? You can also refine your criteria further. When you're ready, just say \"generate\" and I'll build your list.", 1200);
-      } else {
-        const summary = state.criteria.join("\n• ");
-        addAgentMessage("Got it! Here's what I've captured:\n\n• "+summary+"\n\nWhich platform are you sending from — Gainsight, Marketo, HubSpot, or Pendo? And do you need to narrow this to a specific org list, or should I pull from the full population?", 1000);
-      }
-    } else if (platformMatch) {
-      state.stage = "refining";
-      addAgentMessage(state.selectedPlatform.name+" — got it. The CSV will follow the "+state.selectedPlatform.name+" template format.\n\nNow, describe who you need to reach. You can mention criteria like:\n• Payment processor (WorldPay, Stripe, etc.)\n• Account status (active/inactive)\n• Login recency\n• User roles (Admin, Standard User, etc.)\n• Product (Bloomerang CRM, Fundraising, etc.)\n• Feature adoption\n• Revenue segment (Enterprise, Mid-Market, SMB)\n\nJust describe it naturally — I'll help you refine.", 1000);
-    } else {
-      addAgentMessage("I'm not sure I caught specific criteria from that. Here are some segmentation options you can mention:\n\n• Payment processor (e.g., WorldPay, Stripe)\n• Account status (active or inactive)\n• Login recency (e.g., logged in within 6 months)\n• User roles (Admin, Standard User, Read Only, etc.)\n• Product usage (Bloomerang CRM, Fundraising, Volunteer, Giving)\n• Feature adoption (Batch Entry, Online Giving Pages, Peer-to-Peer, etc.)\n• Revenue segment (Enterprise, Mid-Market, SMB, Starter)\n\nJust describe your audience naturally and I'll capture the details.", 800);
-    }
-
-  } else if (state.stage === "refining") {
-    // Check for generate-type confirmations first
-    if (/generate|build|create the list|looks good|that's it|that works|perfect|go ahead/.test(lower) || /^yes\.?$|^yep\.?$|^yeah\.?$|^sure\.?$/.test(lower.trim())) {
-      if (state.criteria.length === 0) { addAgentMessage("I don't have any segmentation criteria yet. Can you describe the audience you need to reach?"); return; }
-      if (!state.selectedPlatform) { addAgentMessage("Before I generate the list, which platform are you sending from — Gainsight, Marketo, HubSpot, or Pendo?"); return; }
-      handleGenerate();
-    } else {
-      // Try to extract more criteria
-      const nc = extractCriteria(lower);
-      if (nc.length > 0) {
-        state.criteria.push(...nc);
-      } else if (!platformMatch) {
-        // Only add raw text as criteria if it wasn't just a platform name
-        state.criteria.push(msg);
-      }
-      renderCriteria();
-
-      if (state.selectedPlatform) {
-        const all = state.criteria.join("\n• ");
-        addAgentMessage("Updated criteria:\n\n• "+all+"\n\nPlatform: "+state.selectedPlatform.name+"\n\nAnything else to add, or say \"generate\" when you're ready.");
-      } else if (platformMatch) {
-        // Platform was just set at the top of this function
-        addAgentMessage(state.selectedPlatform.name+" — locked in. When you're satisfied with the criteria, just say \"generate\" and I'll build your CSV.", 600);
-      } else {
-        const all = state.criteria.join("\n• ");
-        addAgentMessage("Updated criteria:\n\n• "+all+"\n\nWhich platform are you sending from — Gainsight, Marketo, HubSpot, or Pendo? When you're ready, say \"generate\".");
-      }
-    }
-
-  } else if (state.stage === "generated") {
-    if (/notify|send|alert/.test(lower)) {
-      handleNotify();
-    } else {
-      addAgentMessage("Your list is ready! You can download the CSV above, or click 'Notify teams' to alert the relevant stakeholders via Slack.");
-    }
-  }
+function handleSend(){
+  const el=document.getElementById("chat-input"),v=el.value.trim();
+  if(!v||S.thinking)return;
+  S.messages.push({text:v,isAgent:false});el.value="";render();
+  process(v);
 }
 
-function extractCriteria(lower) {
-  const nc = [];
-  if (/worldpay|stripe|paypal|braintree|authorize|square/.test(lower)) {
-    const match = MOCK_PROCESSORS.find(p => lower.includes(p.toLowerCase()));
-    nc.push("Payment Processor: "+(match||"WorldPay"));
-  }
-  if (lower.includes("active") && !lower.includes("inactive")) nc.push("Account Status: Active");
-  if (lower.includes("inactive")) nc.push("Account Status: Inactive");
-  if (/logged?\s*in|login/.test(lower)) nc.push("Login Recency: Last 12 months");
-  if (lower.includes("enterprise")) nc.push("Revenue Segment: Enterprise");
-  if (/mid[\s-]?market/.test(lower)) nc.push("Revenue Segment: Mid-Market");
-  if (lower.includes("smb")) nc.push("Revenue Segment: SMB");
-  MOCK_PRODUCTS.forEach(p => { if (lower.includes(p.toLowerCase())) nc.push("Product: "+p); });
-  MOCK_FEATURES.forEach(f => { if (lower.includes(f.toLowerCase())) nc.push("Feature: "+f); });
-  MOCK_ROLES.forEach(r => { if (lower.includes(r.toLowerCase())) nc.push("Role: "+r); });
+function extract(lower){
+  const nc=[];
+  if(/\bstripe\b/.test(lower)&&!/old|connect/.test(lower)) nc.push("Processor: Stripe");
+  else if(/authorize|authnet|auth\.net/.test(lower)) nc.push("Processor: Authorize.net");
+  else if(/bluepay|blue pay/.test(lower)) nc.push("Processor: BluePay");
+  else if(/bloomerang payments/.test(lower)) nc.push("Processor: Bloomerang Payments");
+  if(/\benterprise\b/.test(lower)) nc.push("Segment: Enterprise");
+  if(/mid[\s-]?market/.test(lower)) nc.push("Segment: Mid-Market");
+  if(/\bsmb\b/.test(lower)) nc.push("Segment: SMB");
+  if(/logged?\s*in|login/.test(lower)){const m=lower.match(/(\d+)\s*month/);nc.push("Login Recency: Last "+(m?m[1]:"12")+" months");}
+  if(/\badmin\b/.test(lower)) nc.push("Role: Admin");
+  if(/bloomerang crm/i.test(lower)) nc.push("Product: Bloomerang CRM");
+  if(/bloomerang fundraising/i.test(lower)) nc.push("Product: Bloomerang Fundraising");
+  if(/bloomerang volunteer/i.test(lower)) nc.push("Product: Bloomerang Volunteer");
+  if(/bloomerang giving/i.test(lower)) nc.push("Product: Bloomerang Giving");
   return nc;
 }
 
-// ── Generate ──────────────────────────────────────────────────────
-function handleGenerate() {
-  state.stage = "generated";
-  const count = Math.floor(Math.random()*200)+30;
-  const data = generateMockCSVData(count);
-  const csv = generateCSVString(data, state.selectedPlatform.id);
-  state.generatedData = data;
-  state.csvString = csv;
-  state.showNotify = true;
+function process(msg){
+  const lower=msg.toLowerCase();
+  const plat=PLATFORMS.find(p=>lower.includes(p.name.toLowerCase())||lower.includes(p.id));
+  if(plat&&!S.platform){S.platform=plat;render();}
 
-  // Add to history immediately
-  const newReq = {
-    id: "REQ-"+String(history.length+1).padStart(3,"0"),
-    date: new Date().toISOString().slice(0,10),
-    requester: "You",
-    description: state.criteria.join(", "),
-    platform: state.selectedPlatform.name,
-    status: "List Delivered",
-    recordCount: count,
-    teams: state.selectedPlatform.team,
-    csvData: csv,
-  };
-  state.currentRequestId = newReq.id;
-  history.unshift(newReq);
-
-  const csmSet = [...new Set(data.map(r=>r.csm))];
-  const coachSet = [...new Set(data.map(r=>r.coach))];
-
-  addAgentMessage(
-    "Your list is ready! Here's a summary:\n\n📊 Records: "+count+" constituents\n📋 Platform: "+state.selectedPlatform.name+"\n📄 Format: CSV ("+state.selectedPlatform.name+" template)\n"+(state.uploadedFile?"📎 Filtered by: uploaded org list\n":"")+"🏢 Criteria: "+state.criteria.join(", ")+"\n\n👤 Associated CSMs: "+csmSet.join(", ")+"\n🎯 Associated Coaches: "+coachSet.join(", ")+"\n\nThis request is tracked as "+newReq.id+". You can download the CSV below. When you're ready to alert the teams, click \"Notify teams.\"",
-    1500
-  );
-}
-
-// ── File Upload ───────────────────────────────────────────────────
-function handleFileUpload(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  state.uploadedFile = file;
-  state.messages.push({text:"📎 Uploaded: "+file.name, isAgent:false});
-  renderMessages();
-  renderCriteria();
-  addAgentMessage("Got it — I'll use \""+file.name+"\" to filter the population down to just those orgs. Your segmentation criteria will apply only to constituents within the organizations in this file.\n\nAnything else to refine, or say \"generate\" when you're ready.", 800);
-}
-
-// ── Download CSV ──────────────────────────────────────────────────
-function handleDownloadCSV() {
-  if (!state.csvString) return;
-  downloadCSV(state.csvString, state.selectedPlatform.name, new Date().toISOString().slice(0,10));
-}
-
-// ── Notify Teams ──────────────────────────────────────────────────
-function handleNotify() {
-  state.notified = true;
-  state.showNotify = false;
-  state.stage = "notified";
-
-  const platform = state.selectedPlatform;
-  const teams = platform.team;
-  const csmSet = [...new Set(state.generatedData.map(r=>r.csm))];
-  const coachSet = [...new Set(state.generatedData.map(r=>r.coach))];
-  const consultantSet = [...new Set(state.generatedData.map(r=>r.consultant))];
-
-  // Update existing history entry status
-  const existing = history.find(h => h.id === state.currentRequestId);
-  if (existing) {
-    existing.status = "Submitted";
+  if(S.stage==="initial"){
+    const nc=extract(lower);
+    if(nc.length>0){
+      S.criteria.push(...nc);S.stage="refining";render();
+      const mc=mockAcctCount(S.criteria);
+      if(S.platform) addMsg("Great — captured:\n\n• "+S.criteria.join("\n• ")+"\n\nPlatform: "+S.platform.name+"\n📊 Matching active accounts: ~"+mc.toLocaleString()+"\n\nUpload an org list to narrow, refine further, or say \"generate\" to build your list.",1200);
+      else addMsg("Got it:\n\n• "+S.criteria.join("\n• ")+"\n📊 Matching active accounts: ~"+mc.toLocaleString()+"\n\nWhich platform — Gainsight, Marketo, HubSpot, or Pendo?",1000);
+    } else if(plat){
+      S.stage="refining";
+      addMsg(S.platform.name+" — got it.\n\nDescribe who you need to reach:\n• Processor (Stripe, Authorize.net, BluePay, Bloomerang Payments)\n• Login recency (e.g., logged in within 6 months)\n• Segment (Enterprise, Mid-Market, SMB)\n• Product (Bloomerang CRM, Fundraising, Volunteer, Giving)\n• Roles (Admin)",1000);
+    } else {
+      addMsg("I didn't catch specific criteria. Available filters:\n\n• Processor (Stripe, Authorize.net, BluePay, Bloomerang Payments)\n• Login recency (e.g., logged in within 6 months)\n• Segment (Enterprise, Mid-Market, SMB)\n• Product (Bloomerang CRM, Fundraising, Volunteer, Giving)\n• Roles (Admin)\n\nDescribe your audience naturally.",800);
+    }
+  } else if(S.stage==="refining"){
+    if(/generate|build|create the list|looks good|that's it|that works|perfect|go ahead/.test(lower)||/^yes\.?$|^yep\.?$|^yeah\.?$|^sure\.?$/.test(lower.trim())){
+      if(!S.criteria.length){addMsg("No criteria yet. Describe your audience.");return;}
+      if(!S.platform){addMsg("Which platform — Gainsight, Marketo, HubSpot, or Pendo?");return;}
+      handleGenerate();
+    } else {
+      const nc=extract(lower);
+      if(nc.length>0) S.criteria.push(...nc);
+      else if(!plat) S.criteria.push(msg);
+      render();
+      const mc=mockAcctCount(S.criteria);
+      if(S.platform) addMsg("Updated:\n\n• "+S.criteria.join("\n• ")+"\n\nPlatform: "+S.platform.name+"\n📊 Matching active accounts: ~"+mc.toLocaleString()+"\n\nSay \"generate\" when ready.");
+      else if(plat) addMsg(S.platform.name+" — locked in.\n📊 Matching active accounts: ~"+mc.toLocaleString()+"\nSay \"generate\" when ready.",600);
+      else addMsg("Updated:\n\n• "+S.criteria.join("\n• ")+"\n📊 Matching active accounts: ~"+mc.toLocaleString()+"\n\nWhich platform? Say \"generate\" when ready.");
+    }
+  } else if(S.stage==="generated"){
+    if(/notify|send|alert/.test(lower)) notify();
+    else addMsg("Your list is ready! Download above or click \"Notify teams.\"");
   }
-
-  addAgentMessage(
-    "Slack notifications sent! Here's what went out:\n\n📢 Channels notified: #marketing-ops"+(teams.includes("RevOps")?", #revops":"")+(teams.includes("Product Operations")?", #product-ops":"")+"\n\n👤 @mentioned:\n• CSMs: "+csmSet.join(", ")+"\n• Coaches: "+coachSet.join(", ")+"\n• Consultants: "+consultantSet.join(", ")+"\n\nThe message includes a summary of the segmentation criteria, record count ("+state.generatedData.length+"), and a link to download the "+platform.name+"-formatted CSV.\n\nThis request is tracked as "+state.currentRequestId+". You can find it in the Request History tab. Need anything else?",
-    1800
-  );
 }
 
-// ── Reset ─────────────────────────────────────────────────────────
-function resetConversation() {
-  state = {
-    messages: [],
-    criteria: [],
-    selectedPlatform: null,
-    uploadedFile: null,
-    generatedData: null,
-    csvString: null,
-    showNotify: false,
-    notified: false,
-    stage: "initial",
-    isThinking: false,
+// ── Generate ──────────────────────────────────────────────────────
+function handleGenerate(){
+  S.stage="generated";S.thinking=true;
+  S.messages.push({text:"Generating your list — filtering accounts and pulling constituent data...",isAgent:true});
+  render();
+
+  setTimeout(()=>{
+    const acctCount=mockAcctCount(S.criteria);
+    const visCount=mockVisitorCount(acctCount);
+    S.acctCount=acctCount;S.visCount=visCount;
+
+    const csv=mockCSV(S.platform.id,visCount);
+    S.csv=csv;S.showNotify=true;
+
+    // Build role summary from mock data
+    const roleCounts={};
+    for(let i=0;i<visCount;i++){const r=ROLES[i%ROLES.length];roleCounts[r]=(roleCounts[r]||0)+1;}
+    const topRoles=Object.entries(roleCounts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([r,c])=>r+" ("+c+")").join(", ");
+
+    // CSMs and coaches
+    const csmList=CSMS.join(", ");
+    const coachList=COACHES.join(", ");
+    const consultantList=CONSULTANTS.join(", ");
+
+    const req={
+      id:"REQ-"+String(history.length+1).padStart(3,"0"),
+      date:new Date().toISOString().slice(0,10),requester:"You",
+      description:S.criteria.join(", "),platform:S.platform.name,
+      status:"List Delivered",recordCount:visCount,
+      teams:S.platform.team,csvData:csv,
+    };
+    S.reqId=req.id;history.unshift(req);
+
+    S.thinking=false;
+    S.messages.push({text:"Your list is ready!\n\n📊 Accounts matched: "+acctCount.toLocaleString()+"\n👤 Constituents found: "+visCount.toLocaleString()+"\n📋 Platform: "+S.platform.name+"\n📄 Format: CSV ("+S.platform.name+" template)\n"+(S.uploadedFile?"📎 Filtered by: uploaded org list\n":"")+"🏢 Criteria: "+S.criteria.join(", ")+"\n\n🔑 Top roles: "+topRoles+"\n\n👤 Associated CSMs: "+csmList+"\n🎯 Associated Coaches: "+coachList+"\n💼 Associated Consultants: "+consultantList+"\n\nTracked as "+req.id+". Download below or click \"Notify teams.\"",isAgent:true});
+    render();
+  },1800);
+}
+
+// ── File upload ───────────────────────────────────────────────────
+function handleFileUpload(e){
+  const file=e.target.files[0];if(!file)return;
+  S.uploadedFile=file;
+  const reader=new FileReader();
+  reader.onload=function(evt){
+    const lines=evt.target.result.split("\n").map(l=>l.trim()).filter(l=>l);
+    const orgs=lines.slice(1).map(l=>l.split(",")[0].replace(/"/g,"").trim()).filter(n=>n);
+    S.uploadedOrgs=orgs;
+    S.messages.push({text:"📎 Uploaded: "+file.name+" ("+orgs.length+" orgs)",isAgent:false});
+    render();
+    addMsg("Got it — I'll filter to the "+orgs.length+" orgs from \""+file.name+"\".\nRefine further or say \"generate\".",800);
   };
-  document.getElementById("chat-input").value = "";
-  renderCriteria();
-  // Add greeting
-  state.messages.push({
-    text: "Hey there! I'm your Operational Sends assistant. I'll help you build a targeted constituent list and get it into the right format for your platform.\n\nTo get started, just describe who you need to reach — tell me about the segmentation criteria (like account status, payment processor, user roles, product usage, login recency, revenue segment, or feature adoption) and I'll help you refine it.\n\nWhich platform are you sending from?",
-    isAgent: true
-  });
-  renderMessages();
-  switchTab("chat");
+  reader.readAsText(file);
+}
+
+// ── Actions ───────────────────────────────────────────────────────
+function dlCSV(){if(S.csv)downloadCSV(S.csv,S.platform.name,new Date().toISOString().slice(0,10));}
+
+function notify(){
+  S.notified=true;S.showNotify=false;S.stage="notified";
+  const t=S.platform.team;
+  const ex=history.find(h=>h.id===S.reqId);if(ex)ex.status="Submitted";
+
+  const csmList=CSMS.join(", ");
+  const coachList=COACHES.join(", ");
+  const consultantList=CONSULTANTS.join(", ");
+
+  addMsg("Slack notifications sent!\n\n📢 Channels notified: #marketing-ops"+(t.includes("RevOps")?", #revops":"")+(t.includes("Product Operations")?", #product-ops":"")+"\n\n👤 @mentioned:\n• CSMs: "+csmList+"\n• Coaches: "+coachList+"\n• Consultants: "+consultantList+"\n\nIncludes criteria summary, record count ("+S.visCount.toLocaleString()+"), and CSV download link.\n\nTracked as "+S.reqId+". See Request History tab.",1200);
+}
+
+function resetConversation(){
+  S={messages:[],criteria:[],platform:null,uploadedFile:null,uploadedOrgs:[],csv:null,showNotify:false,notified:false,stage:"initial",thinking:false,reqId:null,acctCount:0,visCount:0};
+  document.getElementById("chat-input").value="";
+  S.messages.push({text:"Hey there! I'm your Operational Sends assistant. I'll help you build a targeted constituent list and get it into the right format for your platform.\n\nDescribe who you need to reach:\n• Processor (Stripe, Authorize.net, BluePay, Bloomerang Payments)\n• Login recency (e.g., logged in within 6 months)\n• Segment (Enterprise, Mid-Market, SMB)\n• Product (Bloomerang CRM, Fundraising, Volunteer, Giving)\n• Roles (Admin)\n\nYou can also upload a CSV of specific orgs to narrow the list.\n\nWhich platform are you sending from?",isAgent:true});
+  render();switchTab("chat");
 }
 
 // ── Boot ──────────────────────────────────────────────────────────
-initHistory();
-resetConversation();
-renderHistory();
+resetConversation();renderHistory();
 </script>
 </body>
 </html>
